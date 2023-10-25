@@ -75,7 +75,19 @@ class poph264Conan(ConanFile):
 
     def package_info(self):
         if self.settings.os == "Macos" or self.settings.os == "iOS":
-            self.cpp_info.frameworkdirs.append("lib")
-            self.cpp_info.frameworks.append("PopH264")
+            self.cpp_info.name = "PopH264"
+            platform = None
+            arch_folder = None
+            if self.settings.os == "Macos":
+                arch_folder = "macos-arm64_x86_64"
+                platform = "Osx"
+            elif self.settings.os == "iOS":
+                arch_folder = "ios-arm64"
+                platform = "Ios"
+
+            framework_path = os.path.join(self.package_folder, "lib", "PopH264.xcframework", arch_folder)
+            self.cpp_info.components["Api"].names["cmake_find_package"] = platform
+            self.cpp_info.components["Api"].frameworkdirs = [framework_path]
+            self.cpp_info.components["Api"].frameworks = ["PopH264_{0}".format(platform)]
         else:
             self.cpp_info.libs = collect_libs(self)
