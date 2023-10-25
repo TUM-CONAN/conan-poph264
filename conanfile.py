@@ -4,6 +4,7 @@
 
 from conan import ConanFile
 from conan.tools.apple import XcodeDeps, XcodeToolchain, XcodeBuild
+from conan.tools.microsoft import MSBuildDeps, MSBuildToolchain, MSBuild, vs_layout
 from conan.tools.scm import Git
 from conan.tools.files import load, update_conandata, copy, collect_libs, replace_in_file, get
 from conan.tools.layout import basic_layout
@@ -29,8 +30,8 @@ class poph264Conan(ConanFile):
          "fPIC": [True, False]
     }
     default_options = {
-        "shared": False,
-        "fPIC": True
+        "shared": True,
+        "fPIC": False
     }
 
     def export(self):
@@ -53,29 +54,57 @@ class poph264Conan(ConanFile):
 
             deps = XcodeDeps(self)
             deps.generate()
+        elif self.settings.os == "Windows" or self.settings.os == "WindowsStore":
+            tc = MSBuildToolchain(self)
+            tc.generate()
+
+            deps = MSBuildDeps(self)
+            deps.generate()
         else:
             raise ValueError("OS not yet supported")
 
     def layout(self):
-        basic_layout(self, src_folder="source_folder")
+        if self.settings.os == "Macos" or self.settings.os == "iOS":
+            basic_layout(self, src_folder="source_folder")
+        elif self.settings.os == "Windows" or self.settings.os == "WindowsStore":
+            vs_layout(self)
 
     def build(self):
         if self.settings.os == "Macos" or self.settings.os == "iOS":
             xcodebuild = XcodeBuild(self)
             xcodebuild.build(os.path.join(self.source_folder, "PopH264.xcodeproj"), target="PopH264_Universal")
+        elif self.settings.os == "Windows":
+            msbuild = MSBuild(self)
+            if not self.options.shared:
+                msbuild.build_type = "Static"  # @todo: this is always debug win ~20mb ?
+            msbuild.build(os.path.join(self.source_folder, "PopH264.visualstudio", "PopH264.sln"), targets=["PopH264"])
+        elif self.settings.os == "WindowsStore":
+            msbuild = MSBuild(self)
+            if self.settings.arch == "armv8":
+                msbuild.platform = '"ARM64 Uwp"'
+            msbuild.build(os.path.join(self.source_folder, "PopH264.visualstudio", "PopH264.sln"), targets=["PopH264_Uwp"])
         else:
             raise ValueError("OS not yet supported")
 
     def package(self):
-        copy(self, "PopH264.h", os.path.join(self.source_folder, "source"), os.path.join(self.package_folder, "include"))
         if self.settings.os == "Macos" or self.settings.os == "iOS":
             copy(self, "*", os.path.join(self.source_folder, "build", str(self.settings.build_type), "PopH264.xcframework"), os.path.join(self.package_folder, "lib", "PopH264.xcframework"))
+        elif self.settings.os == "Windows":
+            base_path = os.path.join(self.source_folder, "PopH264.visualstudio", "x64", str(self.settings.build_type))
+            copy(self, "PopH264.h", base_path, os.path.join(self.package_folder, "include"))
+            copy(self, "*.dll", base_path, os.path.join(self.package_folder, "bin"))
+            copy(self, "*.lib", base_path, os.path.join(self.package_folder, "lib"))
+        elif self.settings.os == "WindowsStore":
+            base_path = os.path.join(self.source_folder, "PopH264.visualstudio", "ARM64", str(self.settings.build_type), "PopH264.Uwp")
+            copy(self, "PopH264.h", base_path, os.path.join(self.package_folder, "include"))
+            copy(self, "*.dll", base_path, os.path.join(self.package_folder, "bin"))
+            copy(self, "*.lib", base_path, os.path.join(self.package_folder, "lib"))
         else:
             raise ValueError("OS not yet supported")
 
     def package_info(self):
+        self.cpp_info.name = "PopH264"
         if self.settings.os == "Macos" or self.settings.os == "iOS":
-            self.cpp_info.name = "PopH264"
             platform = None
             arch_folder = None
             if self.settings.os == "Macos":
@@ -89,5 +118,11 @@ class poph264Conan(ConanFile):
             self.cpp_info.components["Api"].names["cmake_find_package"] = platform
             self.cpp_info.components["Api"].frameworkdirs = [framework_path]
             self.cpp_info.components["Api"].frameworks = ["PopH264_{0}".format(platform)]
+        elif self.settings.os == "Windows":
+            self.cpp_info.components["Api"].includedirs = [os.path.join(self.package_folder, "include")]
+            self.cpp_info.components["Api"].libs = ["PopH264", "x264"]
+        elif self.settings.os == "WindowsStore":
+            self.cpp_info.components["Api"].includedirs = [os.path.join(self.package_folder, "include")]
+            self.cpp_info.components["Api"].libs = ["PopH264.Uwp"]
         else:
             self.cpp_info.libs = collect_libs(self)
