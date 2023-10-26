@@ -120,7 +120,7 @@ class poph264Conan(ConanFile):
             self.cpp_info.components["Api"].frameworks = ["PopH264_{0}".format(platform)]
         elif self.settings.os == "Windows":
             self.cpp_info.components["Api"].includedirs = [os.path.join(self.package_folder, "include")]
-            self.cpp_info.components["Api"].libs = ["PopH264", "x264"]
+            self.cpp_info.components["Api"].libs = ["PopH264"]
         elif self.settings.os == "WindowsStore":
             self.cpp_info.components["Api"].includedirs = [os.path.join(self.package_folder, "include")]
             self.cpp_info.components["Api"].libs = ["PopH264.Uwp"]
