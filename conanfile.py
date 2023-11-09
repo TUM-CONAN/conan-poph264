@@ -88,8 +88,9 @@ class poph264Conan(ConanFile):
 
     def package(self):
         if self.settings.os == "Macos" or self.settings.os == "iOS":
+            base_path = os.path.join(self.source_folder, "build", str(self.settings.build_type), "PopH264.xcframework")
             copy(self, "PopH264.h", base_path, os.path.join(self.package_folder, "include"))
-            copy(self, "*", os.path.join(self.source_folder, "build", str(self.settings.build_type), "PopH264.xcframework"), os.path.join(self.package_folder, "lib", "PopH264.xcframework"))
+            copy(self, "*", base_path, os.path.join(self.package_folder, "lib", "PopH264.xcframework"))
         elif self.settings.os == "Windows":
             base_path = os.path.join(self.source_folder, "PopH264.visualstudio", "x64", str(self.settings.build_type))
             copy(self, "PopH264.h", base_path, os.path.join(self.package_folder, "include"))
