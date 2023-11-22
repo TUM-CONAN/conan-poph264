@@ -14,7 +14,7 @@ import os
 class poph264Conan(ConanFile):
 
     name = "poph264"
-    _version = "1.9.0"
+    _version = "1.9.2"
     revision = ""
     version = _version+revision
 
