@@ -36,8 +36,8 @@ class poph264Conan(ConanFile):
 
     def export(self):
         update_conandata(self, {"sources": {
-            "commit": "v{}".format(self._version),
-            "url": "https://github.com/NewChromantics/PopH264.git"
+            "commit": "ueck_fix_msmf_encoder_race_condition",   #  "v{}".format(self._version),
+            "url": "https://github.com/TUM-CAMP-NARVIS/PopH264.git"
             }}
             )
 
